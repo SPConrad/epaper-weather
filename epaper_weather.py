@@ -73,7 +73,14 @@ WARNING_TEMP = 25.0
 #cloudy, partly-cloudy-day, partly-cloudy-night
 #icon-cloudy
 
+traffic_checker_url = "http://spconrad.com/trafficchecker/justtime"
 
+def get_travel_time_to_office():
+    r = requests.get(traffic_checker_url)
+    if r.status_code == 200:
+        return r.text
+    else:
+        return "Dunno"
 
 # Query the Dark Sky weather API to get current weather data
 def get_weather():
@@ -133,7 +140,7 @@ WARNING_TEMP = 90
 def updateFrame():
     weather = get_weather()
     temperature = weather["currently"]["temperature"]
-    pressure = weather["currently"]["pressure"]
+##    pressure = weather["currently"]["pressure"]
     summary = weather["currently"]["icon"]
     if "-" in summary:
         summary = summary.replace("-", "_")
@@ -155,20 +162,28 @@ def updateFrame():
     draw.text((72, 34), "T", inky_display.WHITE, font=font)
     draw.text((92, 34), u"{:.0f}°".format(temperature), inky_display.WHITE if temperature < WARNING_TEMP else inky_display.RED, font=font)
 
-    draw.text((72, 58), "P", inky_display.WHITE, font=font)
+##    draw.text((72, 58), "P", inky_display.WHITE, font=font)
     
-    if pressure > 1020:
-        display_pressure_text = "HIGH"        
-        display_pressure_color = 0
-    elif pressure < 988:
-        display_pressure_text = "LOW"
-        display_pressure_color = 2
-    else:
-        display_pressure_text = "Norm"
-        display_pressure_color = 0
+##    if pressure > 1020:
+##        display_pressure_text = "HIGH"        
+##        display_pressure_color = 0
+##    elif pressure < 988:
+##        display_pressure_text = "LOW"
+##        display_pressure_color = 2
+##    else:
+##        display_pressure_text = "Norm"
+##        display_pressure_color = 0
     
-    draw.text((92, 58), display_pressure_text, display_pressure_color, font=font)
+##    draw.text((92, 58), display_pressure_text, display_pressure_color, font=font)
 
+    travel_time = get_travel_time_to_office()
+    travel_time_int = int(travel_time[:2])
+    if travel_time_int > 20:      
+        travel_time_color = 2
+    else:
+        travel_time_color = 0
+
+    draw.text((72, 58), travel_time, travel_time_color, font=font)
     
     icon_string = Icons[summary].value
     if summary is not None:
@@ -181,11 +196,9 @@ def updateFrame():
 def main():
     while True:
         time.sleep(600)
-        get_weather()
         updateFrame()
 
 if __name__ == "__main__":
-    get_weather()
     updateFrame()
     main()
 
