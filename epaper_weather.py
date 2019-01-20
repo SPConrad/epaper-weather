@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import glob
 import requests
 import json
@@ -10,6 +12,7 @@ import argparse
 from inky import InkyPHAT
 from PIL import Image, ImageDraw, ImageFont
 from font_fredoka_one import FredokaOne
+from enum import Enum
 locale.setlocale(locale.LC_TIME,'')
 folder_img = '/home/pi/Documents/images/'
 try:
@@ -17,20 +20,33 @@ try:
 except ImportError:
     exit("This script requires the requests module\nInstall with: sudo pip install requests")
 
+degree_sign= u'\N{DEGREE SIGN}'
+
+class Icons(Enum):
+    snow = "snow"
+    rain = "rain"
+    fog = "fog"
+    cloudy = "cloudy"
+    partly_cloudy_night = "cloudy"
+    partly_cloudy_day = "cloudy"
+    storm = "storm"
+    clear_day = "clear-day"
+    clear_night = "clear-night"
+    wind = "wind"
+
 import RPi.GPIO as GPIO
 GPIO.setmode(GPIO.BCM)
 darksky_api_key = "/0c364b329eaaaf21879e82272fbb2cba"
 darksky_forecast_url = "https://api.darksky.net/forecast"
 durham_lat_lon = "/35.5915,-78.5426"
 parser = argparse.ArgumentParser()
-parser.add_argument('--colour', '-c', type=str, required=True, choices=["red", "black", "yellow"], help="ePaper display colour")
+
 args = parser.parse_args()
 
 
 # Set up the display
 
-colour = args.colour
-inky_display = InkyPHAT(colour)
+inky_display = InkyPHAT("red")
 inky_display.set_border(inky_display.RED)
 
 # Details to customise your weather display
@@ -38,6 +54,26 @@ inky_display.set_border(inky_display.RED)
 CITY = "Durham, NC"
 COUNTRYCODE = "US"
 WARNING_TEMP = 25.0
+
+#wind
+#icon-wind
+
+#clear-day, clear-night
+#icon-clear
+
+#rain
+#icon-rain
+
+#fog
+#icon-fog
+
+#snow
+#icon-snow
+
+#cloudy, partly-cloudy-day, partly-cloudy-night
+#icon-cloudy
+
+
 
 # Query the Dark Sky weather API to get current weather data
 def get_weather():
@@ -54,7 +90,7 @@ def get_weather():
     return {}
 
 
-def create_mask(source, mask=(inky_display.WHITE, inky_display.BLACK, inky_display.RED)):
+def create_mask(source, mask=inky_display.RED):
     """Create a transparency mask.
 
     Takes a paletized source image and converts it into a mask
@@ -69,11 +105,9 @@ def create_mask(source, mask=(inky_display.WHITE, inky_display.BLACK, inky_displ
     for x in range(w):
         for y in range(h):
             p = source.getpixel((x, y))
-            if p in mask:
-                mask_image.putpixel((x, y), 255)
+            mask_image.putpixel((x, y), 255)
 
     return mask_image
-
 
 
 # Dictionaries to store our icons and icon masks in
@@ -90,14 +124,20 @@ for icon in glob.glob("resources/icon-*.png"):
     icons[icon_name] = icon_image
     masks[icon_name] = create_mask(icon_image)
 
+display_pressure_text = ""
+display_pressure_color = 0
+
 # Load the FredokaOne font
 font = ImageFont.truetype(FredokaOne, 22)
-WARNING_TEMP = 35
+WARNING_TEMP = 90
 def updateFrame():
     weather = get_weather()
     temperature = weather["currently"]["temperature"]
     pressure = weather["currently"]["pressure"]
-
+    summary = weather["currently"]["icon"]
+    if "-" in summary:
+        summary = summary.replace("-", "_")
+    
     img = Image.open("/home/pi/Documents/resources/backdrop.png")
     draw = ImageDraw.Draw(img)
     
@@ -109,22 +149,35 @@ def updateFrame():
 
     # Write text with weather values to the canvas
     datetime = time.strftime("%d/%m %H:%M")
-
+    
     draw.text((36, 12), datetime, inky_display.WHITE, font=font)
 
     draw.text((72, 34), "T", inky_display.WHITE, font=font)
-    draw.text((92, 34), u"{:.2f}*".format(temperature), inky_display.WHITE if temperature < WARNING_TEMP else inky_display.RED, font=font)
+    draw.text((92, 34), u"{:.0f}°".format(temperature), inky_display.WHITE if temperature < WARNING_TEMP else inky_display.RED, font=font)
 
     draw.text((72, 58), "P", inky_display.WHITE, font=font)
-    draw.text((92, 58), "{}".format(pressure), inky_display.WHITE, font=font)
+    
+    if pressure > 1020:
+        display_pressure_text = "HIGH"        
+        display_pressure_color = 0
+    elif pressure < 988:
+        display_pressure_text = "LOW"
+        display_pressure_color = 2
+    else:
+        display_pressure_text = "Norm"
+        display_pressure_color = 0
+    
+    draw.text((92, 58), display_pressure_text, display_pressure_color, font=font)
+
+    
+    icon_string = Icons[summary].value
+    if summary is not None:
+        img.paste(icons[icon_string], (28, 36), masks[icon_string])
 
     inky_display.set_image(img)
     inky_display.show()
 
-
-
-
-
+    
 def main():
     while True:
         time.sleep(600)
