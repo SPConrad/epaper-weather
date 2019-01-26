@@ -65,7 +65,7 @@ display_pressure_color = 0
 font = ImageFont.truetype(FredokaOne, 22)
 WARNING_TEMP = 90
 def updateFrame():
-     weather = get_weather()
+    weather = get_weather()
     t = weather["currently"]["temperature"]
     h = weather["currently"]["Humidity"]
     commute = get_travel_time_to_office()
