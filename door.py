@@ -9,7 +9,7 @@ from datetime import datetime
 from datetime import timedelta 
 import locale
 import argparse
-from inky import InkyPHAT
+from inky import inky_display
 from PIL import ImageFont
 from font_fredoka_one import FredokaOne
 from enum import Enum
@@ -28,7 +28,7 @@ durham_lat_lon = "/35.5915,-78.5426"
 
 # Set up the display
 
-inky_display = InkyPHAT("red")
+inky_display = inky_display("red")
 inky_display.set_border(inky_display.RED)
 
 # Details to customise your weather display
@@ -80,6 +80,11 @@ def updateFrame():
     hText = "Humidity: "
     travelText = "Commute Time: "
 
+    image = inky_display.Image.new('P', (inky_display.WIDTH, inky_display.HEIGHT))
+
+    draw = ImageDraw.Draw(image)
+
+
     travel_time = get_travel_time_to_office()
     travel_time_int = int(travel_time[:2])
     if travel_time_int > 20:      
@@ -91,20 +96,19 @@ def updateFrame():
     t1 = 5   # tab 1, frist column, simplifies optimization of layout
     t2 = 110 # tab 2, second column
    
-    inkyphat.clear()
     
-    inkyphat.text((t1, 0), ts0, inkyphat.BLACK, font2) # write timestamp date
-    inkyphat.text((t2, 0), ts1, inkyphat.BLACK, font2) # write timestamp time
-    inkyphat.line ((t1,25, 207,25), 1,3)  # draw a line
+    draw.text((t1, 0), ts0, inky_display.BLACK, font2) # write timestamp date
+    draw.text((t2, 0), ts1, inky_display.BLACK, font2) # write timestamp time
+    draw.line ((t1,25, 207,25), 1,3)  # draw a line
     
-    inkyphat.text((t1, 30), tText, inkyphat.BLACK, font2)
-    inkyphat.text((t2, 30), (tmp + "°C"), inkyphat.BLACK, font2)
-    inkyphat.text((t1, 55), hText, inkyphat.BLACK, font2)
-    inkyphat.text((t2, 55), (hum + " %"), inkyphat.BLACK, font2)
-    inkyphat.text((t1, 80), travelText, inkyphat.BLACK, font2)
-    inkyphat.text((t2, 80), (commuteTime + " %"), travel_time_color, font2)
+    draw.text((t1, 30), tText, inky_display.BLACK, font2)
+    draw.text((t2, 30), (tmp + "°C"), inky_display.BLACK, font2)
+    draw.text((t1, 55), hText, inky_display.BLACK, font2)
+    draw.text((t2, 55), (hum + " %"), inky_display.BLACK, font2)
+    draw.text((t1, 80), travelText, inky_display.BLACK, font2)
+    draw.text((t2, 80), (commuteTime + " %"), travel_time_color, font2)
 
-    inkyphat.show()
+    inky_display.show()
     time.sleep(51) # wait some seconds before next measurements, +19 sec per cycle
 
     inky_display.set_image(img)
